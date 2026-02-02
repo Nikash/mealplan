@@ -6,7 +6,7 @@ import TextField from '@mui/material/TextField';
 import SaveIcon from '@mui/icons-material/Save';
 
 
-export default function Home() {
+export default function Record() {
   return (
     <main className="flex flex-col items-center max-h-screen p-24">
       <div className="flex flex-col items-center max-w-5xl w-full">

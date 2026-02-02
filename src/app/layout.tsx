@@ -1,6 +1,10 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import * as React from 'react';
+import './globals.css';
+
+import ThemeRegistry from '@/app/ThemeRegistry';
+import ButtonAppBar from '@/components/AppBar';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -16,7 +20,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <ThemeRegistry options={{ key: 'mui' }}>
+          <ButtonAppBar></ButtonAppBar>
+          {children}
+        </ThemeRegistry>
+      </body>
     </html>
   )
 }
