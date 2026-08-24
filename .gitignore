@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+meal-logging/.next/
+meal-logging/out/
+
+# Build / misc
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Env
+.env*.local
+
+# Debug / OS
+npm-debug.log*
+.DS_Store
+*.pem
+
+# Vercel
+.vercel
