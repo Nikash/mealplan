@@ -19,23 +19,20 @@ export function SearchableSelect({
 }: Props) {
   const listId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value);
 
-  useEffect(() => {
-    setQuery(value);
-  }, [value]);
+  const query = open ? draft : value;
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       if (!wrapRef.current?.contains(e.target as Node)) {
         setOpen(false);
-        setQuery(value);
       }
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
-  }, [value]);
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -49,7 +46,7 @@ export function SearchableSelect({
 
   function select(item: string) {
     onChange(item);
-    setQuery(item);
+    setDraft(item);
     setOpen(false);
   }
 
@@ -58,7 +55,7 @@ export function SearchableSelect({
     if (!trimmed) return;
     onAddOption(trimmed);
     onChange(trimmed);
-    setQuery(trimmed);
+    setDraft(trimmed);
     setOpen(false);
   }
 
@@ -78,10 +75,13 @@ export function SearchableSelect({
         value={query}
         placeholder="Search or add…"
         onChange={(e) => {
-          setQuery(e.target.value);
+          setDraft(e.target.value);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          setDraft(value);
+          setOpen(true);
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
@@ -89,7 +89,6 @@ export function SearchableSelect({
             else if (filtered[0]) select(filtered[0]);
           } else if (e.key === "Escape") {
             setOpen(false);
-            setQuery(value);
           }
         }}
       />
@@ -100,7 +99,7 @@ export function SearchableSelect({
           role="listbox"
         >
           {filtered.map((item) => (
-            <li key={item} role="option">
+            <li key={item} role="option" aria-selected={item === value}>
               <button
                 type="button"
                 className="combobox-option"
@@ -112,7 +111,7 @@ export function SearchableSelect({
             </li>
           ))}
           {canAdd && (
-            <li role="option">
+            <li role="option" aria-selected={false}>
               <button
                 type="button"
                 className="combobox-option combobox-option-add"
