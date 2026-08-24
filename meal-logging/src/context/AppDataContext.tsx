@@ -4,11 +4,14 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useState,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
 import {
+  initData,
   loadData,
   saveData,
   emptyData,
@@ -56,8 +59,12 @@ function updateData(updater: (prev: AppData) => AppData): void {
 }
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
+  const [ready, setReady] = useState(false);
   const data = useSyncExternalStore(subscribeData, loadData, emptyData);
-  const ready = true;
+
+  useEffect(() => {
+    void initData().finally(() => setReady(true));
+  }, []);
 
   const addMember = useCallback(
     (input: {
