@@ -1,9 +1,9 @@
-export type MemberIcon = "baby" | "boy" | "girl" | "mom" | "dad";
+export type MemberIcon = "baby" | "son" | "daughter" | "mom" | "dad";
 
 export const MEMBER_ICONS: MemberIcon[] = [
   "baby",
-  "boy",
-  "girl",
+  "son",
+  "daughter",
   "mom",
   "dad",
 ];

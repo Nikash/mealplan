@@ -2,8 +2,8 @@ import type { MemberIcon as MemberIconType } from "@/lib/types";
 
 const ICON_LABEL: Record<MemberIconType, string> = {
   baby: "Baby",
-  boy: "Boy",
-  girl: "Girl",
+  son: "Son",
+  daughter: "Daughter",
   mom: "Mom",
   dad: "Dad",
 };
@@ -49,7 +49,7 @@ export function MemberIcon({
             <ellipse cx="32" cy="48" rx="14" ry="10" fill="currentColor" opacity="0.85" />
           </>
         )}
-        {icon === "boy" && (
+        {icon === "son" && (
           <>
             <circle cx="32" cy="20" r="10" fill="currentColor" />
             <path
@@ -59,7 +59,7 @@ export function MemberIcon({
             <rect x="22" y="8" width="20" height="6" rx="2" fill="currentColor" />
           </>
         )}
-        {icon === "girl" && (
+        {icon === "daughter" && (
           <>
             <circle cx="32" cy="20" r="10" fill="currentColor" />
             <path

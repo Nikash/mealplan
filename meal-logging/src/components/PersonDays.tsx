@@ -61,6 +61,9 @@ export function PersonDays({ memberId }: { memberId: string }) {
         <div className="person-heading">
           <MemberIcon icon={member.icon} size={40} />
           <h1 className="app-title">{member.name}</h1>
+          <Link href={`/members/${memberId}/edit`} className="link-button">
+            Edit
+          </Link>
         </div>
       </header>
 

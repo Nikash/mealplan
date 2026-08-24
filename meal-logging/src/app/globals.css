@@ -26,6 +26,7 @@ body {
 
 body {
   min-height: 100%;
+  min-height: 100dvh;
   color: var(--ink);
   background:
     radial-gradient(ellipse 80% 50% at 10% -10%, #dceee7 0%, transparent 55%),
@@ -50,7 +51,11 @@ a {
 .shell {
   width: min(720px, 100%);
   margin: 0 auto;
-  padding: 1.5rem 1.25rem 3rem;
+  padding:
+    max(1.5rem, env(safe-area-inset-top, 0px))
+    max(1.25rem, env(safe-area-inset-right, 0px))
+    max(3rem, env(safe-area-inset-bottom, 0px))
+    max(1.25rem, env(safe-area-inset-left, 0px));
   flex: 1;
 }
 
@@ -86,6 +91,7 @@ a {
 .person-heading {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.75rem;
 }
 
@@ -147,6 +153,7 @@ a {
 .add-member-btn {
   align-self: stretch;
   margin-top: 0.5rem;
+  text-align: center;
 }
 
 .panel {
@@ -158,16 +165,6 @@ a {
   background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
-}
-
-.panel-nested {
-  margin-top: 0.25rem;
-}
-
-.panel-title {
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 1.25rem;
-  font-weight: 600;
 }
 
 .field {
@@ -238,19 +235,48 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.45rem 0.6rem;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
   background: var(--brand-soft);
   border-radius: 10px;
 }
 
+.slot-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.slot-row .link-button {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.slot-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.slot-add-row .text-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.slot-add-row .secondary-button {
+  flex: 0 0 auto;
+}
+
 .inline-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
 }
 
 .inline-row .text-input {
-  flex: 1;
+  flex: 1 1 10rem;
+  min-width: 0;
 }
 
 .button-row {
@@ -271,6 +297,7 @@ a {
   font-weight: 700;
   cursor: pointer;
   border: 1px solid transparent;
+  white-space: nowrap;
 }
 
 .primary-button {
@@ -303,6 +330,8 @@ a {
   padding: 0.25rem;
   text-align: center;
   align-self: center;
+  display: inline-flex;
+  justify-content: center;
 }
 
 .back-link {
@@ -437,5 +466,13 @@ a {
 
   .member-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .slot-add-row {
+    flex-direction: column;
+  }
+
+  .slot-add-row .secondary-button {
+    width: 100%;
   }
 }
