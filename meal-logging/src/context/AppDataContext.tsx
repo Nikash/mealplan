@@ -4,16 +4,12 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
-  useSyncExternalStore,
+  useState,
   type ReactNode,
 } from "react";
-import {
-  loadData,
-  saveData,
-  emptyData,
-  subscribeData,
-} from "@/lib/storage";
+import { loadData, saveData, emptyData } from "@/lib/storage";
 import type {
   AppData,
   DayLog,
@@ -51,13 +47,14 @@ function newId(): string {
   return crypto.randomUUID();
 }
 
-function updateData(updater: (prev: AppData) => AppData): void {
-  saveData(updater(loadData()));
-}
-
 export function AppDataProvider({ children }: { children: ReactNode }) {
-  const data = useSyncExternalStore(subscribeData, loadData, emptyData);
-  const ready = true;
+  const [data, setData] = useState<AppData>(emptyData);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setData(loadData());
+    setReady(true);
+  }, []);
 
   const addMember = useCallback(
     (input: {
@@ -75,30 +72,35 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         createdAt: todayString(),
       };
       if (!member.name) return;
-      updateData((prev) => ({
-        ...prev,
-        members: [...prev.members, member],
-      }));
+      setData((prev) => {
+        const next = { ...prev, members: [...prev.members, member] };
+        saveData(next);
+        return next;
+      });
     },
     [],
   );
 
   const updateMember = useCallback(
     (id: string, patch: { icon: MemberIcon; extraMealSlots: string[] }) => {
-      updateData((prev) => ({
-        ...prev,
-        members: prev.members.map((m) =>
-          m.id === id
-            ? {
-                ...m,
-                icon: patch.icon,
-                extraMealSlots: patch.extraMealSlots
-                  .map((s) => s.trim())
-                  .filter(Boolean),
-              }
-            : m,
-        ),
-      }));
+      setData((prev) => {
+        const next = {
+          ...prev,
+          members: prev.members.map((m) =>
+            m.id === id
+              ? {
+                  ...m,
+                  icon: patch.icon,
+                  extraMealSlots: patch.extraMealSlots
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                }
+              : m,
+          ),
+        };
+        saveData(next);
+        return next;
+      });
     },
     [],
   );
@@ -117,15 +119,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const addFoodItem = useCallback((name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    updateData((prev) => {
+    setData((prev) => {
       if (
-        prev.foodItems.some(
-          (f) => f.toLowerCase() === trimmed.toLowerCase(),
-        )
+        prev.foodItems.some((f) => f.toLowerCase() === trimmed.toLowerCase())
       ) {
         return prev;
       }
-      return { ...prev, foodItems: [...prev.foodItems, trimmed] };
+      const next = { ...prev, foodItems: [...prev.foodItems, trimmed] };
+      saveData(next);
+      return next;
     });
   }, []);
 
@@ -136,7 +138,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       meals: Record<string, string>,
       applyToMemberIds: string[],
     ) => {
-      updateData((prev) => {
+      setData((prev) => {
         const targets = [
           memberId,
           ...applyToMemberIds.filter((id) => id !== memberId),
@@ -182,7 +184,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        return { ...prev, dayLogs, foodItems };
+        const next = { ...prev, dayLogs, foodItems };
+        saveData(next);
+        return next;
       });
     },
     [],
