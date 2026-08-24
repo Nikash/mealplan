@@ -1,6 +1,7 @@
 import type { AppData } from "./types";
 
 const STORAGE_KEY = "meal-logging-data";
+const CHANGE_EVENT = "meal-logging-change";
 
 export function emptyData(): AppData {
   return {
@@ -29,4 +30,16 @@ export function loadData(): AppData {
 export function saveData(data: AppData): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  window.dispatchEvent(new Event(CHANGE_EVENT));
+}
+
+export function subscribeData(onStoreChange: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const handler = () => onStoreChange();
+  window.addEventListener(CHANGE_EVENT, handler);
+  window.addEventListener("storage", handler);
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, handler);
+    window.removeEventListener("storage", handler);
+  };
 }
