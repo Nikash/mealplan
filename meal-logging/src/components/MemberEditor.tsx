@@ -62,7 +62,7 @@ export function MemberEditor({ memberId }: { memberId?: string }) {
       </header>
       <MemberForm
         showName
-        initialIcon="son"
+        initialIcon="mom"
         initialExtraSlots={[]}
         onCancel={() => router.push("/")}
         onSave={(icon, extraMealSlots, name) => {
@@ -202,7 +202,7 @@ function MemberForm({
         <IconPicker value={icon} onChange={setIcon} />
       </div>
       <ExtraSlotsEditor slots={extra} onChange={setExtra} />
-      <div className="button-row">
+      <div className="button-row-split">
         <button type="submit" className="primary-button">
           Save
         </button>

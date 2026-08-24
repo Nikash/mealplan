@@ -126,7 +126,7 @@ function DayEditForm({
           </fieldset>
         )}
 
-        <div className="button-row">
+        <div className="button-row-split">
           <button type="submit" className="primary-button">
             Save
           </button>
