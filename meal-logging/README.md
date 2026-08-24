@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Meal Log
 
-## Getting Started
+A family meal logging web app built with Next.js. Data is stored on the filesystem via a lightweight API, so it persists across browsers and survives container restarts when using Docker.
 
-First, run the development server:
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). Data is written to `./data/meal-logging-data.json` in the project directory.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Docker (Raspberry Pi)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The image uses `node:20-alpine`, which supports ARM64 (Raspberry Pi 3/4/5 and Pi Zero 2 W).
 
-## Learn More
+### Build on the Pi
 
-To learn more about Next.js, take a look at the following resources:
+From the `meal-logging` directory:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+docker build -t meal-logging .
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Build for the Pi from another machine
 
-## Deploy on Vercel
+Use Docker's platform flag to cross-build for ARM64:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+docker build --platform linux/arm64 -t meal-logging .
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Run
+
+Mount a host directory to `/data` so meal logs persist outside the container:
+
+```bash
+docker run -d \
+  --name meal-logging \
+  -p 3000:3000 \
+  -v meal-logging-data:/data \
+  --restart unless-stopped \
+  meal-logging
+```
+
+Open [http://localhost:3000](http://localhost:3000) (or `http://<pi-ip-address>:3000` from another device on your network).
+
+### Useful commands
+
+```bash
+# View logs
+docker logs -f meal-logging
+
+# Stop and remove the container
+docker stop meal-logging && docker rm meal-logging
+
+# Remove persisted data (careful — this deletes all meal logs)
+docker volume rm meal-logging-data
+```
+
+### Data location
+
+Inside the container, data is stored at `/data/meal-logging-data.json`. With the volume mount above, Docker keeps that file in the `meal-logging-data` volume on the host.
+
+## Production build (without Docker)
+
+```bash
+npm run build
+DATA_DIR=./data npm start
+```
