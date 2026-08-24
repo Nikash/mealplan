@@ -4,12 +4,16 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { loadData, saveData, emptyData } from "@/lib/storage";
+import {
+  loadData,
+  saveData,
+  emptyData,
+  subscribeData,
+} from "@/lib/storage";
 import type {
   AppData,
   DayLog,
@@ -47,19 +51,13 @@ function newId(): string {
   return crypto.randomUUID();
 }
 
+function updateData(updater: (prev: AppData) => AppData): void {
+  saveData(updater(loadData()));
+}
+
 export function AppDataProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData>(emptyData);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setData(loadData());
-    setReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!ready) return;
-    saveData(data);
-  }, [data, ready]);
+  const data = useSyncExternalStore(subscribeData, loadData, emptyData);
+  const ready = true;
 
   const addMember = useCallback(
     (input: {
@@ -77,14 +75,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         createdAt: todayString(),
       };
       if (!member.name) return;
-      setData((prev) => ({ ...prev, members: [...prev.members, member] }));
+      updateData((prev) => ({
+        ...prev,
+        members: [...prev.members, member],
+      }));
     },
     [],
   );
 
   const updateMember = useCallback(
     (id: string, patch: { icon: MemberIcon; extraMealSlots: string[] }) => {
-      setData((prev) => ({
+      updateData((prev) => ({
         ...prev,
         members: prev.members.map((m) =>
           m.id === id
@@ -116,7 +117,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const addFoodItem = useCallback((name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    setData((prev) => {
+    updateData((prev) => {
       if (
         prev.foodItems.some(
           (f) => f.toLowerCase() === trimmed.toLowerCase(),
@@ -135,8 +136,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       meals: Record<string, string>,
       applyToMemberIds: string[],
     ) => {
-      setData((prev) => {
-        const targets = [memberId, ...applyToMemberIds.filter((id) => id !== memberId)];
+      updateData((prev) => {
+        const targets = [
+          memberId,
+          ...applyToMemberIds.filter((id) => id !== memberId),
+        ];
         const memberById = new Map(prev.members.map((m) => [m.id, m]));
         let dayLogs = [...prev.dayLogs];
         let foodItems = [...prev.foodItems];
