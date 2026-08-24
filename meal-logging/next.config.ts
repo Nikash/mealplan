@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Allow localtunnel / other preview hosts to load Next.js dev assets
+  allowedDevOrigins: ["*.loca.lt", "localhost", "127.0.0.1"],
 };
 
 export default nextConfig;
