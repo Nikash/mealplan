@@ -9,7 +9,13 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Data is written to `./data/meal-logging-data.json` in the project directory.
+Open [http://localhost:3000/mealplan](http://localhost:3000/mealplan). The app is mounted at `/mealplan` so it can sit behind a path-preserving reverse proxy. To serve from domain root instead:
+
+```bash
+NEXT_PUBLIC_BASE_PATH= npm run dev
+```
+
+Data is written to `./data/meal-logging-data.json` in the project directory.
 
 ## Docker (Raspberry Pi)
 
@@ -44,7 +50,44 @@ docker run -d \
   meal-logging
 ```
 
-Open [http://localhost:3000](http://localhost:3000) (or `http://<pi-ip-address>:3000` from another device on your network).
+Open [http://localhost:3000/mealplan](http://localhost:3000/mealplan) (or `http://<pi-ip-address>:3000/mealplan` from another device on your network).
+
+To serve from `/` instead of `/mealplan`:
+
+```bash
+docker build --build-arg NEXT_PUBLIC_BASE_PATH= -t meal-logging .
+```
+
+### nginx reverse proxy
+
+The app expects nginx to **keep** the `/mealplan` prefix (no URI on `proxy_pass`). This is the working location block:
+
+```nginx
+location /mealplan {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_redirect off;
+}
+```
+
+A copy lives in `nginx.mealplan.conf`.
+
+This configuration causes `ERR_TOO_MANY_REDIRECTS`:
+
+```nginx
+location /mealplan/ {
+    proxy_pass http://127.0.0.1:3000/;
+}
+```
+
+The trailing slash on `proxy_pass` strips `/mealplan` before the request reaches Next.js. Next.js then redirects back to `/mealplan/`, nginx strips it again, and the browser loops. The same loop happens when nginx `location /mealplan/` 301s `/mealplan` → `/mealplan/` while Next.js 308s the trailing slash the other way.
+
+Rebuild the image after changing `NEXT_PUBLIC_BASE_PATH`; `basePath` is inlined at build time.
 
 ### Useful commands
 
@@ -69,3 +112,5 @@ Inside the container, data is stored at `/data/meal-logging-data.json`. With the
 npm run build
 DATA_DIR=./data npm start
 ```
+
+Then open [http://localhost:3000/mealplan](http://localhost:3000/mealplan).

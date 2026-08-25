@@ -7,6 +7,10 @@ RUN npm ci
 
 FROM node:20-alpine AS builder
 WORKDIR /app
+# basePath is inlined at build time. Override with --build-arg NEXT_PUBLIC_BASE_PATH=
+# to serve from domain root instead of /mealplan.
+ARG NEXT_PUBLIC_BASE_PATH=/mealplan
+ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
