@@ -67,18 +67,24 @@ jobs:
           printf '%s\n' "${DEPLOY_SSH_KEY}" | tr -d '\r' > "${HOME}/.ssh/deploy_key"
           host="${DEPLOY_HOST##*@}"
           host="${host%%:*}"
+          if [ -n "${host}" ]; then
+            echo "::add-mask::${host}"
+          fi
           port="${DEPLOY_SSH_PORT:-22}"
           if ! [[ "${port}" =~ ^[0-9]+$ ]] || (( port < 1 || port > 65535 )); then
             echo "DEPLOY_SSH_PORT must be a port number between 1 and 65535." >&2
             exit 1
           fi
-          ssh-keyscan -p "${port}" -H "${host}" >> "${HOME}/.ssh/known_hosts"
+          ssh-keyscan -q -p "${port}" -H "${host}" >> "${HOME}/.ssh/known_hosts"
           chmod 644 "${HOME}/.ssh/known_hosts"
           printf '%s\n' \
             'Host *' \
             "  IdentityFile ${HOME}/.ssh/deploy_key" \
             '  IdentitiesOnly yes' \
             "  Port ${port}" \
+            '  LogLevel ERROR' \
+            '  BatchMode yes' \
+            '  StrictHostKeyChecking yes' \
             > "${HOME}/.ssh/config"
           chmod 600 "${HOME}/.ssh/config"
 
