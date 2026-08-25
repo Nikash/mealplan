@@ -1,4 +1,4 @@
-import type { AppData } from "./types";
+import { normalizeDayLogs, type AppData } from "./types";
 import { withBasePath } from "./base-path";
 
 const CHANGE_EVENT = "meal-logging-change";
@@ -23,7 +23,7 @@ function parseData(raw: unknown): AppData {
   return {
     members: Array.isArray(parsed.members) ? parsed.members : [],
     foodItems: Array.isArray(parsed.foodItems) ? parsed.foodItems : [],
-    dayLogs: Array.isArray(parsed.dayLogs) ? parsed.dayLogs : [],
+    dayLogs: normalizeDayLogs(parsed.dayLogs),
   };
 }
 

@@ -3,7 +3,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 type Props = {
-  label: string;
+  label?: string;
+  ariaLabel?: string;
   value: string;
   options: string[];
   onChange: (value: string) => void;
@@ -12,6 +13,7 @@ type Props = {
 
 export function SearchableSelect({
   label,
+  ariaLabel,
   value,
   options,
   onChange,
@@ -59,15 +61,20 @@ export function SearchableSelect({
     setOpen(false);
   }
 
+  const accessibleName = ariaLabel ?? label;
+
   return (
     <div className="field" ref={wrapRef}>
-      <label className="field-label" htmlFor={listId}>
-        {label}
-      </label>
+      {label ? (
+        <label className="field-label" htmlFor={listId}>
+          {label}
+        </label>
+      ) : null}
       <input
         id={listId}
         className="text-input"
         role="combobox"
+        aria-label={label ? undefined : accessibleName}
         aria-expanded={open}
         aria-autocomplete="list"
         aria-controls={`${listId}-list`}

@@ -10,7 +10,7 @@ import {
   formatDisplayDate,
   todayString,
 } from "@/lib/dates";
-import { mealSlotsFor } from "@/lib/types";
+import { formatMealItems, mealSlotsFor } from "@/lib/types";
 
 export function PersonDays({ memberId }: { memberId: string }) {
   const router = useRouter();
@@ -108,7 +108,7 @@ export function PersonDays({ memberId }: { memberId: string }) {
                   <li key={slot} className="meal-row">
                     <span className="meal-slot">{slot}</span>
                     <span className="meal-value">
-                      {log?.meals[slot]?.trim() || "—"}
+                      {formatMealItems(log?.meals[slot])}
                     </span>
                   </li>
                 ))}

@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
-import type { AppData } from "./types";
+import { normalizeDayLogs, type AppData } from "./types";
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "meal-logging-data.json");
@@ -17,7 +17,7 @@ function parseData(raw: string): AppData {
     return {
       members: Array.isArray(parsed.members) ? parsed.members : [],
       foodItems: Array.isArray(parsed.foodItems) ? parsed.foodItems : [],
-      dayLogs: Array.isArray(parsed.dayLogs) ? parsed.dayLogs : [],
+      dayLogs: normalizeDayLogs(parsed.dayLogs),
     };
   } catch {
     return EMPTY_APP_DATA;

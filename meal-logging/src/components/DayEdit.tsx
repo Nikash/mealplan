@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { useAppData } from "@/context/AppDataContext";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { formatDisplayDate } from "@/lib/dates";
-import { mealSlotsFor, type FamilyMember } from "@/lib/types";
+import {
+  mealSlotsFor,
+  normalizeMealItems,
+  type FamilyMember,
+} from "@/lib/types";
 
 export function DayEdit({
   memberId,
@@ -44,6 +48,10 @@ export function DayEdit({
   );
 }
 
+function rowsForSlot(items: string[] | undefined): string[] {
+  return items && items.length > 0 ? items : [""];
+}
+
 function DayEditForm({
   member,
   date,
@@ -51,21 +59,43 @@ function DayEditForm({
 }: {
   member: FamilyMember;
   date: string;
-  initialMeals: Record<string, string>;
+  initialMeals: Record<string, string[]>;
 }) {
   const router = useRouter();
   const { data, saveDayLog, addFoodItem } = useAppData();
 
   const slots = useMemo(() => mealSlotsFor(member), [member]);
-  const [meals, setMeals] = useState<Record<string, string>>(() => ({
-    ...initialMeals,
-  }));
+  const [meals, setMeals] = useState<Record<string, string[]>>(() => {
+    const next: Record<string, string[]> = {};
+    for (const slot of slots) {
+      next[slot] = rowsForSlot(initialMeals[slot]);
+    }
+    return next;
+  });
   const [applyTo, setApplyTo] = useState<string[]>([]);
 
   const others = data.members.filter((m) => m.id !== member.id);
 
-  function setMeal(slot: string, value: string) {
-    setMeals((prev) => ({ ...prev, [slot]: value }));
+  function setItem(slot: string, index: number, value: string) {
+    setMeals((prev) => {
+      const items = [...rowsForSlot(prev[slot])];
+      items[index] = value;
+      return { ...prev, [slot]: items };
+    });
+  }
+
+  function addItem(slot: string) {
+    setMeals((prev) => ({
+      ...prev,
+      [slot]: [...rowsForSlot(prev[slot]), ""],
+    }));
+  }
+
+  function removeItem(slot: string, index: number) {
+    setMeals((prev) => {
+      const items = rowsForSlot(prev[slot]).filter((_, i) => i !== index);
+      return { ...prev, [slot]: items.length > 0 ? items : [""] };
+    });
   }
 
   function toggleApply(id: string) {
@@ -87,24 +117,49 @@ function DayEditForm({
         className="panel"
         onSubmit={(e) => {
           e.preventDefault();
-          const payload: Record<string, string> = {};
+          const payload: Record<string, string[]> = {};
           for (const slot of slots) {
-            payload[slot] = (meals[slot] ?? "").trim();
+            payload[slot] = normalizeMealItems(meals[slot] ?? []);
           }
           saveDayLog(member.id, date, payload, applyTo);
           router.push(`/members/${member.id}`);
         }}
       >
-        {slots.map((slot) => (
-          <SearchableSelect
-            key={slot}
-            label={slot}
-            value={meals[slot] ?? ""}
-            options={data.foodItems}
-            onChange={(v) => setMeal(slot, v)}
-            onAddOption={addFoodItem}
-          />
-        ))}
+        {slots.map((slot) => {
+          const items = rowsForSlot(meals[slot]);
+          return (
+            <fieldset key={slot} className="meal-slot-fieldset">
+              <legend className="field-label">{slot}</legend>
+              <ul className="meal-item-list">
+                {items.map((item, index) => (
+                  <li key={`${slot}-${index}`} className="meal-item-row">
+                    <SearchableSelect
+                      ariaLabel={`${slot} item ${index + 1}`}
+                      value={item}
+                      options={data.foodItems}
+                      onChange={(v) => setItem(slot, index, v)}
+                      onAddOption={addFoodItem}
+                    />
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => removeItem(slot, index)}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                className="link-button add-item-button"
+                onClick={() => addItem(slot)}
+              >
+                Add item
+              </button>
+            </fieldset>
+          );
+        })}
 
         {others.length > 0 && (
           <fieldset className="apply-fieldset">

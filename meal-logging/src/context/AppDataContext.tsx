@@ -17,11 +17,12 @@ import {
   emptyData,
   subscribeData,
 } from "@/lib/storage";
-import type {
-  AppData,
-  DayLog,
-  FamilyMember,
-  MemberIcon,
+import {
+  normalizeMealItems,
+  type AppData,
+  type DayLog,
+  type FamilyMember,
+  type MemberIcon,
 } from "@/lib/types";
 import { todayString } from "@/lib/dates";
 
@@ -42,7 +43,7 @@ type AppDataContextValue = {
   saveDayLog: (
     memberId: string,
     date: string,
-    meals: Record<string, string>,
+    meals: Record<string, string[]>,
     applyToMemberIds: string[],
   ) => void;
   addFoodItem: (name: string) => void;
@@ -140,7 +141,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     (
       memberId: string,
       date: string,
-      meals: Record<string, string>,
+      meals: Record<string, string[]>,
       applyToMemberIds: string[],
     ) => {
       updateData((prev) => {
@@ -170,12 +171,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
             "Dinner",
             ...member.extraMealSlots,
           ]);
-          const nextMeals: Record<string, string> = {};
+          const nextMeals: Record<string, string[]> = {};
           for (const [slot, value] of Object.entries(meals)) {
             if (!allowedSlots.has(slot)) continue;
-            const trimmed = value.trim();
-            nextMeals[slot] = trimmed;
-            ensureFood(trimmed);
+            const items = normalizeMealItems(value);
+            nextMeals[slot] = items;
+            for (const item of items) {
+              ensureFood(item);
+            }
           }
 
           const idx = dayLogs.findIndex(
