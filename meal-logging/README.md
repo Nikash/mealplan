@@ -39,6 +39,18 @@ docker build --platform linux/arm/v7 -t meal-logging .
 
 Or run `./deploy.sh` (prompts for `user@host`) to build, copy, and restart the remote container.
 
+### GitHub Actions
+
+A manual-only workflow (Actions → Deploy → Run workflow) builds the image and runs the same `./deploy.sh` against the host in the `deploy` environment.
+
+Create that environment under Settings → Environments, and add these **environment** secrets (not repository secrets, so they are not copied to forks):
+
+- `DEPLOY_HOST` — `user@hostname` reachable from GitHub-hosted runners
+- `DEPLOY_SSH_KEY` — private key authorized on that host, with no passphrase
+- `DEPLOY_SSH_PORT` — SSH port (defaults to 22 if unset)
+
+The workflow is `workflow_dispatch` only and skips forks, so those secrets cannot run from a fork.
+
 ### Run
 
 Mount a host directory to `/data` so meal logs persist outside the container:
