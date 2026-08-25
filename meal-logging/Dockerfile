@@ -13,7 +13,8 @@ ARG NEXT_PUBLIC_BASE_PATH=/mealplan
 ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# Turbopack has no native bindings on 32-bit ARM; webpack works via SWC WASM.
+RUN npm run build -- --webpack
 
 FROM node:20-alpine AS runner
 WORKDIR /app

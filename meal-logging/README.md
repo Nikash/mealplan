@@ -19,7 +19,7 @@ Data is written to `./data/meal-logging-data.json` in the project directory.
 
 ## Docker (Raspberry Pi)
 
-The image uses `node:20-alpine`, which supports ARM64 (Raspberry Pi 3/4/5 and Pi Zero 2 W).
+The image uses `node:20-alpine`. A 64-bit Pi OS needs `linux/arm64`; a 32-bit Pi OS (`armv7l`, including older Raspbian) needs `linux/arm/v7`. `./deploy.sh` detects this from the remote host.
 
 ### Build on the Pi
 
@@ -31,11 +31,13 @@ docker build -t meal-logging .
 
 ### Build for the Pi from another machine
 
-Use Docker's platform flag to cross-build for ARM64:
+Use Docker's platform flag to match the Pi (`uname -m` on the device: `aarch64` → `linux/arm64`, `armv7l` → `linux/arm/v7`):
 
 ```bash
-docker build --platform linux/arm64 -t meal-logging .
+docker build --platform linux/arm/v7 -t meal-logging .
 ```
+
+Or run `./deploy.sh` (prompts for `user@host`) to build, copy, and restart the remote container.
 
 ### Run
 
