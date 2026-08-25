@@ -77,7 +77,7 @@ location /mealplan {
 
 A copy lives in `nginx.mealplan.conf`.
 
-This configuration causes `ERR_TOO_MANY_REDIRECTS`:
+Do **not** put a URI on `proxy_pass`. This strips `/mealplan` so Next.js never sees the prefix (404, or a redirect loop if it tries to add `/mealplan` back):
 
 ```nginx
 location /mealplan/ {
@@ -85,7 +85,7 @@ location /mealplan/ {
 }
 ```
 
-The trailing slash on `proxy_pass` strips `/mealplan` before the request reaches Next.js. Next.js then redirects back to `/mealplan/`, nginx strips it again, and the browser loops. The same loop happens when nginx `location /mealplan/` 301s `/mealplan` → `/mealplan/` while Next.js 308s the trailing slash the other way.
+`skipTrailingSlashRedirect` also stops the other common loop: nginx `location /mealplan/` 301s `/mealplan` → `/mealplan/` while Next.js 308s the slash the other way.
 
 Rebuild the image after changing `NEXT_PUBLIC_BASE_PATH`; `basePath` is inlined at build time.
 
