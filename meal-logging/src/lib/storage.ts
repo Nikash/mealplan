@@ -1,4 +1,5 @@
 import type { AppData } from "./types";
+import { withBasePath } from "./base-path";
 
 const CHANGE_EVENT = "meal-logging-change";
 
@@ -40,7 +41,7 @@ export function initData(): Promise<void> {
 
   initPromise = (async () => {
     try {
-      const response = await fetch("/api/data");
+      const response = await fetch(withBasePath("/api/data"));
       if (response.ok) {
         cachedSnapshot = parseData(await response.json());
       }
@@ -56,7 +57,7 @@ export function initData(): Promise<void> {
 export function saveData(data: AppData): void {
   cachedSnapshot = data;
   notifyChange();
-  void fetch("/api/data", {
+  void fetch(withBasePath("/api/data"), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
