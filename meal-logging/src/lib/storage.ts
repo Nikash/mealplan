@@ -1,32 +1,74 @@
 import type { AppData } from "./types";
+import { withBasePath } from "./base-path";
 
-const STORAGE_KEY = "meal-logging-data";
+const CHANGE_EVENT = "meal-logging-change";
+
+/** Stable empty snapshot for useSyncExternalStore (must be referentially equal). */
+export const EMPTY_DATA: AppData = Object.freeze({
+  members: [],
+  foodItems: [],
+  dayLogs: [],
+});
 
 export function emptyData(): AppData {
+  return EMPTY_DATA;
+}
+
+let cachedSnapshot: AppData = EMPTY_DATA;
+let initPromise: Promise<void> | null = null;
+
+function parseData(raw: unknown): AppData {
+  if (!raw || typeof raw !== "object") return EMPTY_DATA;
+  const parsed = raw as Partial<AppData>;
   return {
-    members: [],
-    foodItems: [],
-    dayLogs: [],
+    members: Array.isArray(parsed.members) ? parsed.members : [],
+    foodItems: Array.isArray(parsed.foodItems) ? parsed.foodItems : [],
+    dayLogs: Array.isArray(parsed.dayLogs) ? parsed.dayLogs : [],
   };
 }
 
+function notifyChange(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(CHANGE_EVENT));
+}
+
 export function loadData(): AppData {
-  if (typeof window === "undefined") return emptyData();
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return emptyData();
-    const parsed = JSON.parse(raw) as Partial<AppData>;
-    return {
-      members: Array.isArray(parsed.members) ? parsed.members : [],
-      foodItems: Array.isArray(parsed.foodItems) ? parsed.foodItems : [],
-      dayLogs: Array.isArray(parsed.dayLogs) ? parsed.dayLogs : [],
-    };
-  } catch {
-    return emptyData();
-  }
+  return cachedSnapshot;
+}
+
+export function initData(): Promise<void> {
+  if (initPromise) return initPromise;
+
+  initPromise = (async () => {
+    try {
+      const response = await fetch(withBasePath("/api/data"));
+      if (response.ok) {
+        cachedSnapshot = parseData(await response.json());
+      }
+    } catch {
+      // Keep the empty snapshot when the API is unavailable.
+    }
+    notifyChange();
+  })();
+
+  return initPromise;
 }
 
 export function saveData(data: AppData): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  cachedSnapshot = data;
+  notifyChange();
+  void fetch(withBasePath("/api/data"), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export function subscribeData(onStoreChange: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const handler = () => onStoreChange();
+  window.addEventListener(CHANGE_EVENT, handler);
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, handler);
+  };
 }

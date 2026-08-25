@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Meal Log
 
-## Getting Started
+A family meal logging web app built with Next.js. Data is stored on the filesystem via a lightweight API, so it persists across browsers and survives container restarts when using Docker.
 
-First, run the development server:
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000/mealplan](http://localhost:3000/mealplan). The app is mounted at `/mealplan` so it can sit behind a path-preserving reverse proxy. To serve from domain root instead:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+NEXT_PUBLIC_BASE_PATH= npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Data is written to `./data/meal-logging-data.json` in the project directory.
 
-## Learn More
+## Docker (Raspberry Pi)
 
-To learn more about Next.js, take a look at the following resources:
+The image uses `node:20-alpine`. A 64-bit Pi OS needs `linux/arm64`; a 32-bit Pi OS (`armv7l`, including older Raspbian) needs `linux/arm/v7`. `./deploy.sh` detects this from the remote host.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Build on the Pi
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+From the `meal-logging` directory:
 
-## Deploy on Vercel
+```bash
+docker build -t meal-logging .
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Build for the Pi from another machine
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Use Docker's platform flag to match the Pi (`uname -m` on the device: `aarch64` → `linux/arm64`, `armv7l` → `linux/arm/v7`):
+
+```bash
+docker build --platform linux/arm/v7 -t meal-logging .
+```
+
+Or run `./deploy.sh` (prompts for `user@host`) to build, copy, and restart the remote container.
+
+### GitHub Actions
+
+A manual-only workflow (Actions → Deploy → Run workflow) builds the image and runs the same `./deploy.sh` against the host in the `deploy` environment.
+
+Create that environment under Settings → Environments, and add these **environment** secrets (not repository secrets, so they are not copied to forks):
+
+- `DEPLOY_HOST` — `user@hostname` reachable from GitHub-hosted runners
+- `DEPLOY_SSH_KEY` — private key authorized on that host, with no passphrase
+- `DEPLOY_SSH_PORT` — SSH port (defaults to 22 if unset)
+
+The workflow is `workflow_dispatch` only and skips forks, so those secrets cannot run from a fork.
+
+### Run
+
+Mount a host directory to `/data` so meal logs persist outside the container:
+
+```bash
+docker run -d \
+  --name meal-logging \
+  -p 3000:3000 \
+  -v meal-logging-data:/data \
+  --restart unless-stopped \
+  meal-logging
+```
+
+Open [http://localhost:3000/mealplan](http://localhost:3000/mealplan) (or `http://<pi-ip-address>:3000/mealplan` from another device on your network).
+
+To serve from `/` instead of `/mealplan`:
+
+```bash
+docker build --build-arg NEXT_PUBLIC_BASE_PATH= -t meal-logging .
+```
+
+### nginx reverse proxy
+
+The app expects nginx to **keep** the `/mealplan` prefix (no URI on `proxy_pass`). This is the working location block:
+
+```nginx
+location /mealplan {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_redirect off;
+}
+```
+
+A copy lives in `nginx.mealplan.conf`.
+
+Do **not** put a URI on `proxy_pass`. This strips `/mealplan` so Next.js never sees the prefix (404, or a redirect loop if it tries to add `/mealplan` back):
+
+```nginx
+location /mealplan/ {
+    proxy_pass http://127.0.0.1:3000/;
+}
+```
+
+`skipTrailingSlashRedirect` also stops the other common loop: nginx `location /mealplan/` 301s `/mealplan` → `/mealplan/` while Next.js 308s the slash the other way.
+
+Rebuild the image after changing `NEXT_PUBLIC_BASE_PATH`; `basePath` is inlined at build time.
+
+### Useful commands
+
+```bash
+# View logs
+docker logs -f meal-logging
+
+# Stop and remove the container
+docker stop meal-logging && docker rm meal-logging
+
+# Remove persisted data (careful — this deletes all meal logs)
+docker volume rm meal-logging-data
+```
+
+### Data location
+
+Inside the container, data is stored at `/data/meal-logging-data.json`. With the volume mount above, Docker keeps that file in the `meal-logging-data` volume on the host.
+
+## Production build (without Docker)
+
+```bash
+npm run build
+DATA_DIR=./data npm start
+```
+
+Then open [http://localhost:3000/mealplan](http://localhost:3000/mealplan).

@@ -7,9 +7,16 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { loadData, saveData, emptyData } from "@/lib/storage";
+import {
+  initData,
+  loadData,
+  saveData,
+  emptyData,
+  subscribeData,
+} from "@/lib/storage";
 import type {
   AppData,
   DayLog,
@@ -44,32 +51,19 @@ type AppDataContextValue = {
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 
 function newId(): string {
-  const c = globalThis.crypto;
-  if (typeof c?.randomUUID === "function") {
-    return c.randomUUID();
-  }
-  if (typeof c?.getRandomValues === "function") {
-    const bytes = c.getRandomValues(new Uint8Array(16));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
-      "",
-    );
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (ch) => {
-    const n = (Math.random() * 16) | 0;
-    return (ch === "x" ? n : (n & 0x3) | 0x8).toString(16);
-  });
+  return crypto.randomUUID();
+}
+
+function updateData(updater: (prev: AppData) => AppData): void {
+  saveData(updater(loadData()));
 }
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData>(emptyData);
   const [ready, setReady] = useState(false);
+  const data = useSyncExternalStore(subscribeData, loadData, emptyData);
 
   useEffect(() => {
-    setData(loadData());
-    setReady(true);
+    void initData().finally(() => setReady(true));
   }, []);
 
   const addMember = useCallback(
@@ -88,35 +82,30 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         createdAt: todayString(),
       };
       if (!member.name) return;
-      setData((prev) => {
-        const next = { ...prev, members: [...prev.members, member] };
-        saveData(next);
-        return next;
-      });
+      updateData((prev) => ({
+        ...prev,
+        members: [...prev.members, member],
+      }));
     },
     [],
   );
 
   const updateMember = useCallback(
     (id: string, patch: { icon: MemberIcon; extraMealSlots: string[] }) => {
-      setData((prev) => {
-        const next = {
-          ...prev,
-          members: prev.members.map((m) =>
-            m.id === id
-              ? {
-                  ...m,
-                  icon: patch.icon,
-                  extraMealSlots: patch.extraMealSlots
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                }
-              : m,
-          ),
-        };
-        saveData(next);
-        return next;
-      });
+      updateData((prev) => ({
+        ...prev,
+        members: prev.members.map((m) =>
+          m.id === id
+            ? {
+                ...m,
+                icon: patch.icon,
+                extraMealSlots: patch.extraMealSlots
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              }
+            : m,
+        ),
+      }));
     },
     [],
   );
@@ -135,15 +124,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const addFoodItem = useCallback((name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    setData((prev) => {
+    updateData((prev) => {
       if (
-        prev.foodItems.some((f) => f.toLowerCase() === trimmed.toLowerCase())
+        prev.foodItems.some(
+          (f) => f.toLowerCase() === trimmed.toLowerCase(),
+        )
       ) {
         return prev;
       }
-      const next = { ...prev, foodItems: [...prev.foodItems, trimmed] };
-      saveData(next);
-      return next;
+      return { ...prev, foodItems: [...prev.foodItems, trimmed] };
     });
   }, []);
 
@@ -154,7 +143,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       meals: Record<string, string>,
       applyToMemberIds: string[],
     ) => {
-      setData((prev) => {
+      updateData((prev) => {
         const targets = [
           memberId,
           ...applyToMemberIds.filter((id) => id !== memberId),
@@ -200,9 +189,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        const next = { ...prev, dayLogs, foodItems };
-        saveData(next);
-        return next;
+        return { ...prev, dayLogs, foodItems };
       });
     },
     [],
