@@ -75,7 +75,7 @@ jobs:
             echo "DEPLOY_SSH_PORT must be a port number between 1 and 65535." >&2
             exit 1
           fi
-          ssh-keyscan -q -p "${port}" -H "${host}" >> "${HOME}/.ssh/known_hosts"
+          ssh-keyscan -p "${port}" -H "${host}" >> "${HOME}/.ssh/known_hosts"
           chmod 644 "${HOME}/.ssh/known_hosts"
           printf '%s\n' \
             'Host *' \
