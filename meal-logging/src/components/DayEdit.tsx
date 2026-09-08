@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppData } from "@/context/AppDataContext";
 import { SearchableSelect } from "@/components/SearchableSelect";
-import { formatDisplayDate } from "@/lib/dates";
+import { formatDisplayDate, todayString } from "@/lib/dates";
 import { rankFoodItems, suggestMealItems } from "@/lib/suggestions";
 import {
   mealSlotsFor,
@@ -85,17 +85,20 @@ function DayEditForm({
     });
   }
 
+  const showSuggestionChips = date >= todayString();
   const suggestionsBySlot = useMemo(() => {
     const chips: Record<string, string[]> = {};
     const options: Record<string, string[]> = {};
     for (const slot of slots) {
-      chips[slot] = suggestMealItems(data.dayLogs, {
-        memberId: member.id,
-        slot,
-        asOfDate: date,
-        exclude: meals[slot] ?? [],
-        limit: 5,
-      });
+      chips[slot] = showSuggestionChips
+        ? suggestMealItems(data.dayLogs, {
+            memberId: member.id,
+            slot,
+            asOfDate: date,
+            exclude: meals[slot] ?? [],
+            limit: 5,
+          })
+        : [];
       options[slot] = rankFoodItems(data.foodItems, data.dayLogs, {
         memberId: member.id,
         slot,
@@ -103,7 +106,15 @@ function DayEditForm({
       });
     }
     return { chips, options };
-  }, [data.dayLogs, data.foodItems, date, meals, member.id, slots]);
+  }, [
+    data.dayLogs,
+    data.foodItems,
+    date,
+    meals,
+    member.id,
+    showSuggestionChips,
+    slots,
+  ]);
 
   function addItem(slot: string) {
     setMeals((prev) => ({
