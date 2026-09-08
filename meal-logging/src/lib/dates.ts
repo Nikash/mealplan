@@ -21,6 +21,14 @@ export function addDays(iso: string, days: number): string {
   return formatDate(d);
 }
 
+/** Signed calendar-day difference from `fromIso` to `toIso` (YYYY-MM-DD). */
+export function daysBetween(fromIso: string, toIso: string): number {
+  const from = parseDate(fromIso);
+  const to = parseDate(toIso);
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.round((to.getTime() - from.getTime()) / msPerDay);
+}
+
 /** Inclusive range from start to end (both YYYY-MM-DD), newest first */
 export function dateRangeNewestFirst(start: string, end: string): string[] {
   if (start > end) return dateRangeNewestFirst(end, start);

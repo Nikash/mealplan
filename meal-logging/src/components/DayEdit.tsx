@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppData } from "@/context/AppDataContext";
 import { SearchableSelect } from "@/components/SearchableSelect";
-import { formatDisplayDate } from "@/lib/dates";
+import { formatDisplayDate, todayString } from "@/lib/dates";
+import { rankFoodItems, suggestMealItems } from "@/lib/suggestions";
 import {
   mealSlotsFor,
   normalizeMealItems,
@@ -84,11 +85,55 @@ function DayEditForm({
     });
   }
 
+  const showSuggestionChips = date >= todayString();
+  const suggestionsBySlot = useMemo(() => {
+    const chips: Record<string, string[]> = {};
+    const options: Record<string, string[]> = {};
+    for (const slot of slots) {
+      chips[slot] = showSuggestionChips
+        ? suggestMealItems(data.dayLogs, {
+            memberId: member.id,
+            slot,
+            asOfDate: date,
+            exclude: meals[slot] ?? [],
+            limit: 5,
+          })
+        : [];
+      options[slot] = rankFoodItems(data.foodItems, data.dayLogs, {
+        memberId: member.id,
+        slot,
+        asOfDate: date,
+      });
+    }
+    return { chips, options };
+  }, [
+    data.dayLogs,
+    data.foodItems,
+    date,
+    meals,
+    member.id,
+    showSuggestionChips,
+    slots,
+  ]);
+
   function addItem(slot: string) {
     setMeals((prev) => ({
       ...prev,
       [slot]: [...rowsForSlot(prev[slot]), ""],
     }));
+  }
+
+  function applySuggestion(slot: string, name: string) {
+    setMeals((prev) => {
+      const items = [...rowsForSlot(prev[slot])];
+      const emptyIndex = items.findIndex((item) => !item.trim());
+      if (emptyIndex >= 0) {
+        items[emptyIndex] = name;
+      } else {
+        items.push(name);
+      }
+      return { ...prev, [slot]: items };
+    });
   }
 
   function removeItem(slot: string, index: number) {
@@ -127,6 +172,7 @@ function DayEditForm({
       >
         {slots.map((slot) => {
           const items = rowsForSlot(meals[slot]);
+          const suggestions = suggestionsBySlot.chips[slot] ?? [];
           return (
             <fieldset key={slot} className="meal-slot-fieldset">
               <legend className="field-label">{slot}</legend>
@@ -136,7 +182,8 @@ function DayEditForm({
                     <SearchableSelect
                       ariaLabel={`${slot} item ${index + 1}`}
                       value={item}
-                      options={data.foodItems}
+                      options={suggestionsBySlot.options[slot] ?? data.foodItems}
+                      exclude={items}
                       onChange={(v) => setItem(slot, index, v)}
                       onAddOption={addFoodItem}
                     />
@@ -150,6 +197,24 @@ function DayEditForm({
                   </li>
                 ))}
               </ul>
+              {suggestions.length > 0 && (
+                <div className="suggestions">
+                  <p className="suggestions-label">Suggestions</p>
+                  <ul className="suggestion-chips">
+                    {suggestions.map((name) => (
+                      <li key={name}>
+                        <button
+                          type="button"
+                          className="suggestion-chip"
+                          onClick={() => applySuggestion(slot, name)}
+                        >
+                          {name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <button
                 type="button"
                 className="link-button add-item-button"
