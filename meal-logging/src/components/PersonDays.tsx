@@ -22,16 +22,21 @@ export function PersonDays({ memberId }: { memberId: string }) {
   const dates = useMemo(() => {
     if (!member) return [];
     const today = todayString();
-    const loggedBefore = data.dayLogs
+    const loggedDates = data.dayLogs
       .filter((l) => l.memberId === memberId)
       .map((l) => l.date);
     const earliestLogged =
-      loggedBefore.length > 0
-        ? loggedBefore.reduce((a, b) => (a < b ? a : b))
+      loggedDates.length > 0
+        ? loggedDates.reduce((a, b) => (a < b ? a : b))
         : member.createdAt;
+    const latestLogged =
+      loggedDates.length > 0
+        ? loggedDates.reduce((a, b) => (a > b ? a : b))
+        : today;
     const start =
       earliestLogged < member.createdAt ? earliestLogged : member.createdAt;
-    const end = today >= start ? today : start;
+    const endCandidate = latestLogged > today ? latestLogged : today;
+    const end = endCandidate >= start ? endCandidate : start;
     return dateRangeNewestFirst(start, end);
   }, [member, data.dayLogs, memberId]);
 
@@ -76,7 +81,7 @@ export function PersonDays({ memberId }: { memberId: string }) {
         }}
       >
         <label className="field-label" htmlFor="jump-date">
-          Open a past day
+          Open a day
         </label>
         <div className="inline-row">
           <input
@@ -84,7 +89,6 @@ export function PersonDays({ memberId }: { memberId: string }) {
             type="date"
             className="text-input"
             value={jumpDate}
-            max={todayString()}
             onChange={(e) => setJumpDate(e.target.value)}
           />
           <button type="submit" className="secondary-button" disabled={!jumpDate}>
