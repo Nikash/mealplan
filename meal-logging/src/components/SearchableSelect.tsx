@@ -2,11 +2,17 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+function itemKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
 type Props = {
   label?: string;
   ariaLabel?: string;
   value: string;
   options: string[];
+  /** Names already used on this day/slot; omitted from the list except the current value. */
+  exclude?: string[];
   onChange: (value: string) => void;
   onAddOption: (value: string) => void;
 };
@@ -16,6 +22,7 @@ export function SearchableSelect({
   ariaLabel,
   value,
   options,
+  exclude,
   onChange,
   onAddOption,
 }: Props) {
@@ -36,15 +43,36 @@ export function SearchableSelect({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
+  const excludeKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const name of exclude ?? []) {
+      const key = itemKey(name);
+      if (key) keys.add(key);
+    }
+    return keys;
+  }, [exclude]);
+
+  const available = useMemo(() => {
+    const keep = itemKey(value);
+    return options.filter((option) => {
+      const key = itemKey(option);
+      if (!key) return false;
+      if (keep && key === keep) return true;
+      return !excludeKeys.has(key);
+    });
+  }, [options, excludeKeys, value]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return options;
-    return options.filter((o) => o.toLowerCase().includes(q));
-  }, [options, query]);
+    if (!q) return available;
+    return available.filter((o) => o.toLowerCase().includes(q));
+  }, [available, query]);
 
+  const queryKey = query.trim().toLowerCase();
   const canAdd =
-    query.trim().length > 0 &&
-    !options.some((o) => o.toLowerCase() === query.trim().toLowerCase());
+    queryKey.length > 0 &&
+    !excludeKeys.has(queryKey) &&
+    !options.some((o) => itemKey(o) === queryKey);
 
   function select(item: string) {
     onChange(item);
@@ -130,7 +158,9 @@ export function SearchableSelect({
             </li>
           )}
           {filtered.length === 0 && !canAdd && (
-            <li className="combobox-empty">No items yet</li>
+            <li className="combobox-empty">
+              {options.length === 0 ? "No items yet" : "No matching items"}
+            </li>
           )}
         </ul>
       )}

@@ -172,6 +172,7 @@ function DayEditForm({
                       ariaLabel={`${slot} item ${index + 1}`}
                       value={item}
                       options={suggestionsBySlot.options[slot] ?? data.foodItems}
+                      exclude={items}
                       onChange={(v) => setItem(slot, index, v)}
                       onAddOption={addFoodItem}
                     />
