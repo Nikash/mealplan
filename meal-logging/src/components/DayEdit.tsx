@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppData } from "@/context/AppDataContext";
@@ -11,7 +11,22 @@ import {
   mealSlotsFor,
   normalizeMealItems,
   type FamilyMember,
+  type MealItem,
+  type MealRole,
 } from "@/lib/types";
+
+const MEAL_ROLES: MealRole[] = ["main", "side"];
+
+const ROLE_HELP =
+  "A main is the center of the meal, like pasta or chicken. A side is served with it, like salad or rice. Suggestions stay separate so a side is not offered as a main.";
+
+function roleLabel(role: MealRole): string {
+  return role === "side" ? "Side" : "Main";
+}
+
+function emptyRow(): MealItem {
+  return { name: "", role: "main" };
+}
 
 export function DayEdit({
   memberId,
@@ -49,8 +64,8 @@ export function DayEdit({
   );
 }
 
-function rowsForSlot(items: string[] | undefined): string[] {
-  return items && items.length > 0 ? items : [""];
+function rowsForSlot(items: MealItem[] | undefined): MealItem[] {
+  return items && items.length > 0 ? items : [emptyRow()];
 }
 
 function DayEditForm({
@@ -60,50 +75,70 @@ function DayEditForm({
 }: {
   member: FamilyMember;
   date: string;
-  initialMeals: Record<string, string[]>;
+  initialMeals: Record<string, MealItem[]>;
 }) {
   const router = useRouter();
+  const helpBaseId = useId();
   const { data, saveDayLog, addFoodItem } = useAppData();
 
   const slots = useMemo(() => mealSlotsFor(member), [member]);
-  const [meals, setMeals] = useState<Record<string, string[]>>(() => {
-    const next: Record<string, string[]> = {};
+  const [meals, setMeals] = useState<Record<string, MealItem[]>>(() => {
+    const next: Record<string, MealItem[]> = {};
     for (const slot of slots) {
-      next[slot] = rowsForSlot(initialMeals[slot]);
+      next[slot] = rowsForSlot(initialMeals[slot]).map((item) => ({ ...item }));
     }
     return next;
   });
   const [applyTo, setApplyTo] = useState<string[]>([]);
+  const [openRoleHelp, setOpenRoleHelp] = useState<string | null>(null);
 
   const others = data.members.filter((m) => m.id !== member.id);
 
   function setItem(slot: string, index: number, value: string) {
     setMeals((prev) => {
       const items = [...rowsForSlot(prev[slot])];
-      items[index] = value;
+      const current = items[index] ?? emptyRow();
+      items[index] = { ...current, name: value };
+      return { ...prev, [slot]: items };
+    });
+  }
+
+  function setRole(slot: string, index: number, role: MealRole) {
+    setMeals((prev) => {
+      const items = [...rowsForSlot(prev[slot])];
+      const current = items[index] ?? emptyRow();
+      items[index] = { ...current, role };
       return { ...prev, [slot]: items };
     });
   }
 
   const showSuggestionChips = date >= todayString();
   const suggestionsBySlot = useMemo(() => {
-    const chips: Record<string, string[]> = {};
-    const options: Record<string, string[]> = {};
+    const chips: Record<string, Record<MealRole, string[]>> = {};
+    const options: Record<string, Record<MealRole, string[]>> = {};
     for (const slot of slots) {
-      chips[slot] = showSuggestionChips
-        ? suggestMealItems(data.dayLogs, {
-            memberId: member.id,
-            slot,
-            asOfDate: date,
-            exclude: meals[slot] ?? [],
-            limit: 5,
-          })
-        : [];
-      options[slot] = rankFoodItems(data.foodItems, data.dayLogs, {
+      const exclude = (meals[slot] ?? []).map((item) => item.name);
+      const base = {
         memberId: member.id,
         slot,
         asOfDate: date,
-      });
+      };
+      chips[slot] = { main: [], side: [] };
+      options[slot] = { main: [], side: [] };
+      for (const role of MEAL_ROLES) {
+        chips[slot][role] = showSuggestionChips
+          ? suggestMealItems(data.dayLogs, {
+              ...base,
+              role,
+              exclude,
+              limit: 5,
+            })
+          : [];
+        options[slot][role] = rankFoodItems(data.foodItems, data.dayLogs, {
+          ...base,
+          role,
+        });
+      }
     }
     return { chips, options };
   }, [
@@ -119,18 +154,24 @@ function DayEditForm({
   function addItem(slot: string) {
     setMeals((prev) => ({
       ...prev,
-      [slot]: [...rowsForSlot(prev[slot]), ""],
+      [slot]: [...rowsForSlot(prev[slot]), emptyRow()],
     }));
   }
 
-  function applySuggestion(slot: string, name: string) {
+  function applySuggestion(slot: string, name: string, role: MealRole) {
     setMeals((prev) => {
       const items = [...rowsForSlot(prev[slot])];
-      const emptyIndex = items.findIndex((item) => !item.trim());
+      const matchingEmpty = items.findIndex(
+        (item) => !item.name.trim() && item.role === role,
+      );
+      const emptyIndex =
+        matchingEmpty >= 0
+          ? matchingEmpty
+          : items.findIndex((item) => !item.name.trim());
       if (emptyIndex >= 0) {
-        items[emptyIndex] = name;
+        items[emptyIndex] = { name, role };
       } else {
-        items.push(name);
+        items.push({ name, role });
       }
       return { ...prev, [slot]: items };
     });
@@ -139,7 +180,7 @@ function DayEditForm({
   function removeItem(slot: string, index: number) {
     setMeals((prev) => {
       const items = rowsForSlot(prev[slot]).filter((_, i) => i !== index);
-      return { ...prev, [slot]: items.length > 0 ? items : [""] };
+      return { ...prev, [slot]: items.length > 0 ? items : [emptyRow()] };
     });
   }
 
@@ -162,7 +203,7 @@ function DayEditForm({
         className="panel"
         onSubmit={(e) => {
           e.preventDefault();
-          const payload: Record<string, string[]> = {};
+          const payload: Record<string, MealItem[]> = {};
           for (const slot of slots) {
             payload[slot] = normalizeMealItems(meals[slot] ?? []);
           }
@@ -170,23 +211,68 @@ function DayEditForm({
           router.push(`/members/${member.id}`);
         }}
       >
-        {slots.map((slot) => {
+        {slots.map((slot, slotIndex) => {
           const items = rowsForSlot(meals[slot]);
-          const suggestions = suggestionsBySlot.chips[slot] ?? [];
+          const suggestions = suggestionsBySlot.chips[slot] ?? {
+            main: [],
+            side: [],
+          };
+          const helpId = `${helpBaseId}-${slotIndex}`;
+          const helpOpen = openRoleHelp === slot;
           return (
             <fieldset key={slot} className="meal-slot-fieldset">
-              <legend className="field-label">{slot}</legend>
+              <legend className="meal-slot-legend">
+                <span className="field-label">{slot}</span>
+                <button
+                  type="button"
+                  className="role-help-button"
+                  aria-expanded={helpOpen}
+                  aria-controls={helpId}
+                  aria-describedby={helpOpen ? helpId : undefined}
+                  onClick={() =>
+                    setOpenRoleHelp((current) => (current === slot ? null : slot))
+                  }
+                >
+                  <span className="visually-hidden">About main and side</span>
+                  <span aria-hidden="true">?</span>
+                </button>
+              </legend>
+              {helpOpen && (
+                <p id={helpId} className="role-help-note" role="note">
+                  {ROLE_HELP}
+                </p>
+              )}
               <ul className="meal-item-list">
                 {items.map((item, index) => (
                   <li key={`${slot}-${index}`} className="meal-item-row">
                     <SearchableSelect
                       ariaLabel={`${slot} item ${index + 1}`}
-                      value={item}
-                      options={suggestionsBySlot.options[slot] ?? data.foodItems}
-                      exclude={items}
+                      value={item.name}
+                      options={
+                        suggestionsBySlot.options[slot]?.[item.role] ??
+                        data.foodItems
+                      }
+                      exclude={items.map((row) => row.name)}
                       onChange={(v) => setItem(slot, index, v)}
                       onAddOption={addFoodItem}
                     />
+                    <div
+                      className="role-toggle"
+                      role="group"
+                      aria-label={`${slot} item ${index + 1} type`}
+                    >
+                      {MEAL_ROLES.map((role) => (
+                        <button
+                          key={role}
+                          type="button"
+                          className="role-toggle-option"
+                          aria-pressed={item.role === role}
+                          onClick={() => setRole(slot, index, role)}
+                        >
+                          {roleLabel(role)}
+                        </button>
+                      ))}
+                    </div>
                     <button
                       type="button"
                       className="link-button"
@@ -197,22 +283,32 @@ function DayEditForm({
                   </li>
                 ))}
               </ul>
-              {suggestions.length > 0 && (
-                <div className="suggestions">
-                  <p className="suggestions-label">Suggestions</p>
-                  <ul className="suggestion-chips">
-                    {suggestions.map((name) => (
-                      <li key={name}>
-                        <button
-                          type="button"
-                          className="suggestion-chip"
-                          onClick={() => applySuggestion(slot, name)}
-                        >
-                          {name}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+              {(suggestions.main.length > 0 || suggestions.side.length > 0) && (
+                <div className="suggestion-groups">
+                  {MEAL_ROLES.map((role) => {
+                    const names = suggestions[role];
+                    if (names.length === 0) return null;
+                    return (
+                      <div key={role} className="suggestions">
+                        <p className="suggestions-label">
+                          {roleLabel(role)} suggestions
+                        </p>
+                        <ul className="suggestion-chips">
+                          {names.map((name) => (
+                            <li key={name}>
+                              <button
+                                type="button"
+                                className="suggestion-chip"
+                                onClick={() => applySuggestion(slot, name, role)}
+                              >
+                                {name}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               <button

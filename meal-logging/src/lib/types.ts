@@ -19,12 +19,20 @@ export type FamilyMember = {
   createdAt: string; // YYYY-MM-DD
 };
 
+export type MealRole = "main" | "side";
+
+/** One dish in a meal slot. A name may include spaces. */
+export type MealItem = {
+  name: string;
+  role: MealRole;
+};
+
 /** Meals for one member on one calendar day */
 export type DayLog = {
   memberId: string;
   date: string; // YYYY-MM-DD
-  /** slot name -> food item names (each name is a full string; spaces allowed) */
-  meals: Record<string, string[]>;
+  /** slot name -> dishes */
+  meals: Record<string, MealItem[]>;
 };
 
 export type AppData = {
@@ -37,29 +45,42 @@ export function mealSlotsFor(member: FamilyMember): string[] {
   return [...DEFAULT_MEAL_SLOTS, ...member.extraMealSlots];
 }
 
+export function mealRoleOf(value: unknown): MealRole {
+  return value === "side" ? "side" : "main";
+}
+
 /** Trim ends only — never split on spaces or other delimiters. */
-export function normalizeMealItems(value: unknown): string[] {
+export function normalizeMealItem(value: unknown): MealItem | null {
   if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed ? [trimmed] : [];
+    const name = value.trim();
+    return name ? { name, role: "main" } : null;
   }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const entry = value as { name?: unknown; role?: unknown };
+  if (typeof entry.name !== "string") return null;
+  const name = entry.name.trim();
+  if (!name) return null;
+  return { name, role: mealRoleOf(entry.role) };
+}
+
+export function normalizeMealItems(value: unknown): MealItem[] {
   if (Array.isArray(value)) {
-    const items: string[] = [];
+    const items: MealItem[] = [];
     for (const entry of value) {
-      if (typeof entry !== "string") continue;
-      const trimmed = entry.trim();
-      if (trimmed) items.push(trimmed);
+      const item = normalizeMealItem(entry);
+      if (item) items.push(item);
     }
     return items;
   }
-  return [];
+  const item = normalizeMealItem(value);
+  return item ? [item] : [];
 }
 
-export function normalizeMeals(meals: unknown): Record<string, string[]> {
+export function normalizeMeals(meals: unknown): Record<string, MealItem[]> {
   if (!meals || typeof meals !== "object" || Array.isArray(meals)) {
     return {};
   }
-  const next: Record<string, string[]> = {};
+  const next: Record<string, MealItem[]> = {};
   for (const [slot, value] of Object.entries(meals)) {
     next[slot] = normalizeMealItems(value);
   }
@@ -84,8 +105,3 @@ export function normalizeDayLogs(logs: unknown): DayLog[] {
   return next;
 }
 
-/** Display-only join. Do not parse this string back into items. */
-export function formatMealItems(items: string[] | undefined): string {
-  const filled = (items ?? []).map((item) => item.trim()).filter(Boolean);
-  return filled.length > 0 ? filled.join(", ") : "—";
-}
