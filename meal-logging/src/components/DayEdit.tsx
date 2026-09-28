@@ -90,7 +90,7 @@ function DayEditForm({
     return next;
   });
   const [applyTo, setApplyTo] = useState<string[]>([]);
-  const [openRoleHelp, setOpenRoleHelp] = useState<string | null>(null);
+  const [roleHelpOpen, setRoleHelpOpen] = useState(false);
 
   const others = data.members.filter((m) => m.id !== member.id);
 
@@ -193,9 +193,29 @@ function DayEditForm({
   return (
     <div className="page">
       <header className="page-header with-back">
-        <Link href={`/members/${member.id}`} className="back-link">
-          ← {member.name}
-        </Link>
+        <div className="day-header-top">
+          <Link href={`/members/${member.id}`} className="back-link">
+            ← {member.name}
+          </Link>
+          <div className="role-help">
+            <button
+              type="button"
+              className="role-help-button"
+              aria-expanded={roleHelpOpen}
+              aria-controls={helpBaseId}
+              aria-describedby={roleHelpOpen ? helpBaseId : undefined}
+              onClick={() => setRoleHelpOpen((open) => !open)}
+            >
+              <span className="visually-hidden">About main and side</span>
+              <span aria-hidden="true">?</span>
+            </button>
+            {roleHelpOpen && (
+              <p id={helpBaseId} className="role-help-note" role="note">
+                {ROLE_HELP}
+              </p>
+            )}
+          </div>
+        </div>
         <h1 className="app-title">{formatDisplayDate(date)}</h1>
       </header>
 
@@ -211,37 +231,15 @@ function DayEditForm({
           router.push(`/members/${member.id}`);
         }}
       >
-        {slots.map((slot, slotIndex) => {
+        {slots.map((slot) => {
           const items = rowsForSlot(meals[slot]);
           const suggestions = suggestionsBySlot.chips[slot] ?? {
             main: [],
             side: [],
           };
-          const helpId = `${helpBaseId}-${slotIndex}`;
-          const helpOpen = openRoleHelp === slot;
           return (
             <fieldset key={slot} className="meal-slot-fieldset">
-              <legend className="meal-slot-legend">
-                <span className="field-label">{slot}</span>
-                <button
-                  type="button"
-                  className="role-help-button"
-                  aria-expanded={helpOpen}
-                  aria-controls={helpId}
-                  aria-describedby={helpOpen ? helpId : undefined}
-                  onClick={() =>
-                    setOpenRoleHelp((current) => (current === slot ? null : slot))
-                  }
-                >
-                  <span className="visually-hidden">About main and side</span>
-                  <span aria-hidden="true">?</span>
-                </button>
-              </legend>
-              {helpOpen && (
-                <p id={helpId} className="role-help-note" role="note">
-                  {ROLE_HELP}
-                </p>
-              )}
+              <legend className="field-label">{slot}</legend>
               <ul className="meal-item-list">
                 {items.map((item, index) => (
                   <li key={`${slot}-${index}`} className="meal-item-row">

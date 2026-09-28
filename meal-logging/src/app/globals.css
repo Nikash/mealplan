@@ -83,6 +83,18 @@ a {
   line-height: 1.15;
 }
 
+.day-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.role-help {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .page-sub {
   color: var(--muted);
   font-size: 1rem;
@@ -461,17 +473,10 @@ a {
 }
 
 .meal-slot-fieldset > .field-label,
-.meal-slot-fieldset legend.field-label,
-.meal-slot-legend {
+.meal-slot-fieldset legend.field-label {
   float: none;
   width: auto;
   padding: 0;
-}
-
-.meal-slot-legend {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
 }
 
 .role-help-button {
@@ -499,6 +504,11 @@ a {
 }
 
 .role-help-note {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 30;
+  width: min(18rem, 70vw);
   margin: 0;
   padding: 0.65rem 0.75rem;
   border-radius: 12px;
@@ -506,6 +516,7 @@ a {
   color: var(--ink);
   font-size: 0.9rem;
   line-height: 1.4;
+  box-shadow: var(--shadow);
 }
 
 .visually-hidden {
