@@ -1,5 +1,5 @@
 import { daysBetween } from "@/lib/dates";
-import type { DayLog } from "@/lib/types";
+import type { DayLog, MealRole } from "@/lib/types";
 
 export type ScoredMealItem = {
   name: string;
@@ -16,7 +16,7 @@ function itemKey(name: string): string {
 
 export function scoreSlotItems(
   dayLogs: DayLog[],
-  opts: { memberId: string; slot: string; asOfDate: string },
+  opts: { memberId: string; slot: string; asOfDate: string; role: MealRole },
 ): ScoredMealItem[] {
   const stats = new Map<
     string,
@@ -31,7 +31,8 @@ export function scoreSlotItems(
 
     const seenThisDay = new Set<string>();
     for (const raw of slotItems) {
-      const name = raw.trim();
+      if (raw.role !== opts.role) continue;
+      const name = raw.name.trim();
       if (!name) continue;
       const key = itemKey(name);
       if (seenThisDay.has(key)) continue;
@@ -82,6 +83,7 @@ export function suggestMealItems(
     memberId: string;
     slot: string;
     asOfDate: string;
+    role: MealRole;
     exclude?: string[];
     limit?: number;
   },
@@ -102,7 +104,7 @@ export function suggestMealItems(
 export function rankFoodItems(
   foodItems: string[],
   dayLogs: DayLog[],
-  opts: { memberId: string; slot: string; asOfDate: string },
+  opts: { memberId: string; slot: string; asOfDate: string; role: MealRole },
 ): string[] {
   const scored = scoreSlotItems(dayLogs, opts);
   const rank = new Map<string, number>();
