@@ -13,23 +13,10 @@ import {
 import { mealSlotsFor, type MealItem } from "@/lib/types";
 
 function MealSlotValue({ items }: { items: MealItem[] | undefined }) {
-  const filled = (items ?? []).filter((item) => item.name.trim());
-  if (filled.length === 0) {
-    return <span className="meal-value">—</span>;
-  }
+  const names = (items ?? []).map((item) => item.name.trim()).filter(Boolean);
   return (
     <span className="meal-value">
-      {filled.map((item, index) => (
-        <span
-          key={`${item.role}-${item.name}-${index}`}
-          className="meal-value-item"
-        >
-          <span className="meal-value-name">{item.name}</span>
-          <span className={`meal-role-badge meal-role-${item.role}`}>
-            {item.role === "side" ? "Side" : "Main"}
-          </span>
-        </span>
-      ))}
+      {names.length > 0 ? names.join(", ") : "—"}
     </span>
   );
 }
