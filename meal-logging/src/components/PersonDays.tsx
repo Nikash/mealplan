@@ -10,7 +10,16 @@ import {
   formatDisplayDate,
   todayString,
 } from "@/lib/dates";
-import { formatMealItems, mealSlotsFor } from "@/lib/types";
+import { mealSlotsFor, type MealItem } from "@/lib/types";
+
+function MealSlotValue({ items }: { items: MealItem[] | undefined }) {
+  const names = (items ?? []).map((item) => item.name.trim()).filter(Boolean);
+  return (
+    <span className="meal-value">
+      {names.length > 0 ? names.join(", ") : "—"}
+    </span>
+  );
+}
 
 export function PersonDays({ memberId }: { memberId: string }) {
   const router = useRouter();
@@ -111,9 +120,7 @@ export function PersonDays({ memberId }: { memberId: string }) {
                 {slots.map((slot) => (
                   <li key={slot} className="meal-row">
                     <span className="meal-slot">{slot}</span>
-                    <span className="meal-value">
-                      {formatMealItems(log?.meals[slot])}
-                    </span>
+                    <MealSlotValue items={log?.meals[slot]} />
                   </li>
                 ))}
               </ul>

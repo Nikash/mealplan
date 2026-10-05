@@ -22,6 +22,7 @@ import {
   type AppData,
   type DayLog,
   type FamilyMember,
+  type MealItem,
   type MemberIcon,
 } from "@/lib/types";
 import { todayString } from "@/lib/dates";
@@ -43,7 +44,7 @@ type AppDataContextValue = {
   saveDayLog: (
     memberId: string,
     date: string,
-    meals: Record<string, string[]>,
+    meals: Record<string, MealItem[]>,
     applyToMemberIds: string[],
   ) => void;
   addFoodItem: (name: string) => void;
@@ -141,7 +142,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     (
       memberId: string,
       date: string,
-      meals: Record<string, string[]>,
+      meals: Record<string, MealItem[]>,
       applyToMemberIds: string[],
     ) => {
       updateData((prev) => {
@@ -171,13 +172,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
             "Dinner",
             ...member.extraMealSlots,
           ]);
-          const nextMeals: Record<string, string[]> = {};
+          const nextMeals: Record<string, MealItem[]> = {};
           for (const [slot, value] of Object.entries(meals)) {
             if (!allowedSlots.has(slot)) continue;
             const items = normalizeMealItems(value);
             nextMeals[slot] = items;
             for (const item of items) {
-              ensureFood(item);
+              ensureFood(item.name);
             }
           }
 
