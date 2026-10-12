@@ -239,7 +239,21 @@ function DayEditForm({
           };
           return (
             <fieldset key={slot} className="meal-slot-fieldset">
-              <legend className="field-label">{slot}</legend>
+              <legend className="meal-slot-legend">
+                <span className="meal-slot-legend-row">
+                  <span className="field-label">{slot}</span>
+                  <Link
+                    href={`/dishes?${new URLSearchParams({
+                      member: member.id,
+                      slot,
+                      from: `/members/${member.id}/days/${date}`,
+                    }).toString()}`}
+                    className="link-button"
+                  >
+                    View all Dishes
+                  </Link>
+                </span>
+              </legend>
               <ul className="meal-item-list">
                 {items.map((item, index) => (
                   <li key={`${slot}-${index}`} className="meal-item-row">
