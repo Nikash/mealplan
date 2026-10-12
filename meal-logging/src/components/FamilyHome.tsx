@@ -16,6 +16,9 @@ export function FamilyHome() {
       <header className="page-header">
         <h1 className="app-title">Meal Log</h1>
         <p className="page-sub">Who ate what today</p>
+        <Link href="/dishes" className="link-button home-dishes-link">
+          View all Dishes
+        </Link>
       </header>
 
       <div className="member-grid">

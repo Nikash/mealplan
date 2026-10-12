@@ -448,6 +448,68 @@ a {
   padding: 0;
 }
 
+.home-dishes-link {
+  align-self: flex-start;
+  width: fit-content;
+  padding-left: 0;
+}
+
+.meal-slot-legend {
+  float: none;
+  width: 100%;
+  padding: 0;
+}
+
+.meal-slot-legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.meal-slot-legend-row .link-button {
+  flex-shrink: 0;
+  padding-right: 0;
+  font-size: 0.95rem;
+}
+
+.dish-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.dish-filters .field {
+  flex: 1 1 12rem;
+}
+
+.dish-list {
+  list-style: none;
+  gap: 0.85rem;
+}
+
+.dish-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.dish-row .field {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.dish-row .role-toggle {
+  margin-top: 0.35rem;
+}
+
+.field-error {
+  color: #8a3d2f;
+  font-size: 0.85rem;
+}
+
 .role-help-button {
   display: inline-flex;
   align-items: center;
@@ -545,7 +607,8 @@ a {
   color: #fff;
 }
 
-.meal-item-row .icon-button {
+.meal-item-row .icon-button,
+.dish-row .icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -561,7 +624,8 @@ a {
   cursor: pointer;
 }
 
-.meal-item-row .icon-button:hover {
+.meal-item-row .icon-button:hover,
+.dish-row .icon-button:hover {
   background: var(--danger-soft);
   color: var(--ink);
 }

@@ -49,6 +49,10 @@ export function mealRoleOf(value: unknown): MealRole {
   return value === "side" ? "side" : "main";
 }
 
+export function mealItemKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
 /** Trim ends only — never split on spaces or other delimiters. */
 export function normalizeMealItem(value: unknown): MealItem | null {
   if (typeof value === "string") {

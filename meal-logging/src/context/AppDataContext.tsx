@@ -18,11 +18,13 @@ import {
   subscribeData,
 } from "@/lib/storage";
 import {
+  mealItemKey,
   normalizeMealItems,
   type AppData,
   type DayLog,
   type FamilyMember,
   type MealItem,
+  type MealRole,
   type MemberIcon,
 } from "@/lib/types";
 import { todayString } from "@/lib/dates";
@@ -48,12 +50,64 @@ type AppDataContextValue = {
     applyToMemberIds: string[],
   ) => void;
   addFoodItem: (name: string) => void;
+  renameFoodItem: (from: string, to: string) => boolean;
+  setMealItemRole: (name: string, role: MealRole) => void;
+  deleteFoodItem: (name: string) => void;
 };
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 
 function newId(): string {
   return crypto.randomUUID();
+}
+
+function dishNameTaken(data: AppData, key: string): boolean {
+  if (data.foodItems.some((name) => mealItemKey(name) === key)) return true;
+  return data.dayLogs.some((log) =>
+    Object.values(log.meals).some((items) =>
+      items.some((item) => mealItemKey(item.name) === key),
+    ),
+  );
+}
+
+function replaceDishName(
+  foodItems: string[],
+  fromKey: string,
+  nextName: string,
+): string[] {
+  const toKey = mealItemKey(nextName);
+  let replaced = false;
+  const next: string[] = [];
+  for (const name of foodItems) {
+    if (mealItemKey(name) === fromKey) {
+      if (!replaced) {
+        next.push(nextName);
+        replaced = true;
+      }
+      continue;
+    }
+    next.push(name);
+  }
+  if (!replaced && !next.some((name) => mealItemKey(name) === toKey)) {
+    next.push(nextName);
+  }
+  return next;
+}
+
+function mapMeals(
+  meals: Record<string, MealItem[]>,
+  mapItem: (item: MealItem) => MealItem | null,
+): Record<string, MealItem[]> {
+  const next: Record<string, MealItem[]> = {};
+  for (const [slot, items] of Object.entries(meals)) {
+    const mapped: MealItem[] = [];
+    for (const item of items) {
+      const result = mapItem(item);
+      if (result) mapped.push(result);
+    }
+    next[slot] = mapped;
+  }
+  return next;
 }
 
 function updateData(updater: (prev: AppData) => AppData): void {
@@ -138,6 +192,54 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const renameFoodItem = useCallback((from: string, to: string): boolean => {
+    const nextName = to.trim();
+    const fromKey = mealItemKey(from);
+    const toKey = mealItemKey(nextName);
+    if (!fromKey || !toKey) return false;
+    if (toKey !== fromKey && dishNameTaken(loadData(), toKey)) return false;
+    updateData((prev) => ({
+      ...prev,
+      foodItems: replaceDishName(prev.foodItems, fromKey, nextName),
+      dayLogs: prev.dayLogs.map((log) => ({
+        ...log,
+        meals: mapMeals(log.meals, (item) =>
+          mealItemKey(item.name) === fromKey ? { ...item, name: nextName } : item,
+        ),
+      })),
+    }));
+    return true;
+  }, []);
+
+  const setMealItemRole = useCallback((name: string, role: MealRole) => {
+    const key = mealItemKey(name);
+    if (!key) return;
+    updateData((prev) => ({
+      ...prev,
+      dayLogs: prev.dayLogs.map((log) => ({
+        ...log,
+        meals: mapMeals(log.meals, (item) =>
+          mealItemKey(item.name) === key ? { ...item, role } : item,
+        ),
+      })),
+    }));
+  }, []);
+
+  const deleteFoodItem = useCallback((name: string) => {
+    const key = mealItemKey(name);
+    if (!key) return;
+    updateData((prev) => ({
+      ...prev,
+      foodItems: prev.foodItems.filter((item) => mealItemKey(item) !== key),
+      dayLogs: prev.dayLogs.map((log) => ({
+        ...log,
+        meals: mapMeals(log.meals, (item) =>
+          mealItemKey(item.name) === key ? null : item,
+        ),
+      })),
+    }));
+  }, []);
+
   const saveDayLog = useCallback(
     (
       memberId: string,
@@ -209,6 +311,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       getDayLog,
       saveDayLog,
       addFoodItem,
+      renameFoodItem,
+      setMealItemRole,
+      deleteFoodItem,
     }),
     [
       ready,
@@ -219,6 +324,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       getDayLog,
       saveDayLog,
       addFoodItem,
+      renameFoodItem,
+      setMealItemRole,
+      deleteFoodItem,
     ],
   );
 
