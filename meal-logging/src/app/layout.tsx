@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Nunito_Sans } from "next/font/google";
 import { AppDataProvider } from "@/context/AppDataContext";
+import { MobileNav } from "@/components/MobileNav";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
@@ -53,9 +54,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
+        <div className="standalone-status-bar" aria-hidden="true" />
         <ServiceWorkerRegister />
         <AppDataProvider>
           <main className="shell">{children}</main>
+          <MobileNav />
         </AppDataProvider>
       </body>
     </html>
