@@ -491,18 +491,19 @@ a {
 
 .dish-row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 0.5rem;
 }
 
 .dish-row .field {
-  flex: 1 1 12rem;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
-.dish-row .role-toggle {
-  margin-top: 0.35rem;
+.dish-row .role-toggle,
+.dish-row .icon-button {
+  margin-top: 0;
 }
 
 .field-error {
@@ -625,7 +626,9 @@ a {
 }
 
 .meal-item-row .role-toggle,
-.meal-item-row .icon-button {
+.meal-item-row .icon-button,
+.dish-row .role-toggle,
+.dish-row .icon-button {
   margin-top: 0;
 }
 
