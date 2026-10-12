@@ -505,11 +505,6 @@ a {
   margin-top: 0.35rem;
 }
 
-.dish-delete {
-  flex-shrink: 0;
-  margin-top: 0.45rem;
-}
-
 .field-error {
   color: #8a3d2f;
   font-size: 0.85rem;
@@ -612,7 +607,8 @@ a {
   color: #fff;
 }
 
-.meal-item-row .icon-button {
+.meal-item-row .icon-button,
+.dish-row .icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -628,7 +624,8 @@ a {
   cursor: pointer;
 }
 
-.meal-item-row .icon-button:hover {
+.meal-item-row .icon-button:hover,
+.dish-row .icon-button:hover {
   background: var(--danger-soft);
   color: var(--ink);
 }
