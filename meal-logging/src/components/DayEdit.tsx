@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppData } from "@/context/AppDataContext";
 import { SearchableSelect } from "@/components/SearchableSelect";
+import { TrashIcon } from "@/components/TrashIcon";
 import { formatDisplayDate, todayString } from "@/lib/dates";
 import { rankFoodItems, suggestMealItems } from "@/lib/suggestions";
 import {
@@ -64,8 +65,14 @@ export function DayEdit({
   );
 }
 
+function withTrailingEmpty(items: MealItem[]): MealItem[] {
+  const last = items[items.length - 1];
+  if (last && !last.name.trim()) return items;
+  return [...items, emptyRow()];
+}
+
 function rowsForSlot(items: MealItem[] | undefined): MealItem[] {
-  return items && items.length > 0 ? items : [emptyRow()];
+  return withTrailingEmpty(items ?? []);
 }
 
 function DayEditForm({
@@ -99,7 +106,7 @@ function DayEditForm({
       const items = [...rowsForSlot(prev[slot])];
       const current = items[index] ?? emptyRow();
       items[index] = { ...current, name: value };
-      return { ...prev, [slot]: items };
+      return { ...prev, [slot]: withTrailingEmpty(items) };
     });
   }
 
@@ -151,13 +158,6 @@ function DayEditForm({
     slots,
   ]);
 
-  function addItem(slot: string) {
-    setMeals((prev) => ({
-      ...prev,
-      [slot]: [...rowsForSlot(prev[slot]), emptyRow()],
-    }));
-  }
-
   function applySuggestion(slot: string, name: string, role: MealRole) {
     setMeals((prev) => {
       const items = [...rowsForSlot(prev[slot])];
@@ -173,14 +173,14 @@ function DayEditForm({
       } else {
         items.push({ name, role });
       }
-      return { ...prev, [slot]: items };
+      return { ...prev, [slot]: withTrailingEmpty(items) };
     });
   }
 
   function removeItem(slot: string, index: number) {
     setMeals((prev) => {
       const items = rowsForSlot(prev[slot]).filter((_, i) => i !== index);
-      return { ...prev, [slot]: items.length > 0 ? items : [emptyRow()] };
+      return { ...prev, [slot]: withTrailingEmpty(items) };
     });
   }
 
@@ -285,27 +285,16 @@ function DayEditForm({
                         </button>
                       ))}
                     </div>
-                    <button
-                      type="button"
-                      className="icon-button"
-                      aria-label={`Remove ${slot} item ${index + 1}`}
-                      onClick={() => removeItem(slot, index)}
-                    >
-                      <svg
-                        viewBox="0 0 16 16"
-                        width="14"
-                        height="14"
-                        aria-hidden="true"
+                    {item.name.trim() ? (
+                      <button
+                        type="button"
+                        className="icon-button"
+                        aria-label={`Remove ${slot} item ${index + 1}`}
+                        onClick={() => removeItem(slot, index)}
                       >
-                        <path
-                          d="M3.2 3.2l9.6 9.6M12.8 3.2L3.2 12.8"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.75"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </button>
+                        <TrashIcon />
+                      </button>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -337,13 +326,6 @@ function DayEditForm({
                   })}
                 </div>
               )}
-              <button
-                type="button"
-                className="link-button add-item-button"
-                onClick={() => addItem(slot)}
-              >
-                Add item
-              </button>
             </fieldset>
           );
         })}

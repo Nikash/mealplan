@@ -491,18 +491,19 @@ a {
 
 .dish-row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 0.5rem;
 }
 
 .dish-row .field {
-  flex: 1 1 12rem;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
-.dish-row .role-toggle {
-  margin-top: 0.35rem;
+.dish-row .role-toggle,
+.dish-row .icon-button {
+  margin-top: 0;
 }
 
 .field-error {
@@ -571,13 +572,13 @@ a {
 
 .meal-item-row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 0.5rem;
 }
 
 .meal-item-row .field {
-  flex: 1 1 12rem;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -624,15 +625,17 @@ a {
   cursor: pointer;
 }
 
+.meal-item-row .role-toggle,
+.meal-item-row .icon-button,
+.dish-row .role-toggle,
+.dish-row .icon-button {
+  margin-top: 0;
+}
+
 .meal-item-row .icon-button:hover,
 .dish-row .icon-button:hover {
   background: var(--danger-soft);
   color: var(--ink);
-}
-
-.add-item-button {
-  align-self: flex-start;
-  padding-left: 0;
 }
 
 .suggestion-groups {
@@ -747,17 +750,73 @@ a {
   cursor: pointer;
 }
 
+.mobile-nav {
+  display: none;
+}
+
+.standalone-status-bar {
+  display: none;
+}
+
 @media (max-width: 480px) {
   .meal-row {
     grid-template-columns: 1fr;
     gap: 0.15rem;
   }
 
-  .meal-item-row .field {
-    flex: 1 0 100%;
-  }
-
   .member-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .shell {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    z-index: 40;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .mobile-nav-link {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    min-height: 3.25rem;
+    padding: 0.45rem 0.5rem 0.4rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .mobile-nav-link[aria-current="page"] {
+    color: var(--brand);
+  }
+}
+
+@media (display-mode: standalone) {
+  .standalone-status-bar {
+    display: block;
+    position: fixed;
+    z-index: 60;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: max(6px, env(safe-area-inset-top, 0px));
+    background: var(--bg);
+    pointer-events: none;
+  }
+
+  .shell {
+    padding-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 1.5rem));
   }
 }
